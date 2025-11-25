@@ -1,0 +1,43 @@
+name: Android ARM64 Build
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Install system CMake
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cmake ninja-build
+        
+    - name: Setup Android environment
+      uses: android-actions/setup-android@v3
+      with:
+        build-tools-version: '34.0.0'
+        ndk-version: '25.2.9519653'
+        platforms: 'android-34'
+        
+    - name: Verify installations
+      run: |
+        cmake --version
+        which cmake
+        echo "ANDROID_HOME: $ANDROID_HOME"
+        ls -la $ANDROID_HOME/cmake/ || echo "CMake directory not found"
+        
+    - name: Create local.properties with system CMake
+      run: |
+        echo "sdk.dir=$ANDROID_HOME" > local.properties
+        echo "ndk.dir=$ANDROID_HOME/ndk/25.2.9519653" >> local.properties
+        # 不指定cmake.dir，让Gradle使用系统CMake
+        
+    - name: Build project
+      run: |
+        chmod +x ./gradlew
+        ./gradlew clean :shadowhook:build --stacktrace --info
